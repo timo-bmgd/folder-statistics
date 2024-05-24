@@ -10,10 +10,7 @@ With our File Creation Date Heatmap Generator, you can turn boring file creation
 
 ### How to Use:
 1. **Clone the Repository**:
-   - Clone this repository to your local machine:
-     ```
-     git clone https://github.com/your-username/your-repository.git
-     ```
+   - Clone this repository to your local machine.
 
 2. **Install Dependencies**:
    - Navigate to the cloned directory and run the following command to install the required dependencies:
