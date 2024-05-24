@@ -46,7 +46,7 @@ def get_files(folder_path, file_extension):
     return files
 
 
-def generate_heatmap(folder_path, file_extension):
+def generate_heatmap(folder_path, file_extension, cmap):
     # Get the files with the specified file extension
     files = get_files(folder_path, file_extension)
     if not files:
@@ -73,11 +73,11 @@ def generate_heatmap(folder_path, file_extension):
     # Plot each year's data on a separate subplot
     for ax, year in zip(axes, years):
         year_data = creation_series[creation_series.index.year == year]
-        calmap.yearplot(year_data, fillcolor='lightgray', cmap='Blues', linewidth=0.5, year=year, ax=ax)
+        calmap.yearplot(year_data, fillcolor='lightgray', cmap=cmap, linewidth=0.5, year=year, ax=ax)
         ax.set_title(f'{file_extension.upper()} Files Creation Dates Heatmap for {year}')
 
     # Add a colorbar to the plot
-    sm = plt.cm.ScalarMappable(cmap='Blues', norm=plt.Normalize(vmin=0, vmax=creation_series.max()))
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=creation_series.max()))
     sm._A = []
     cbar = fig.colorbar(sm, ax=axes, orientation='horizontal', pad=0.05)
     cbar.set_label('Number of Files')
@@ -94,6 +94,7 @@ def browse_folder():
 def generate_heatmap_from_gui():
     folder_path = entry_folder.get()
     file_extension = entry_extension.get().lower()
+    cmap = cmap_var.get()  # Get the selected colormap from the dropdown menu
 
     if not os.path.isdir(folder_path):
         tk.messagebox.showerror("Error", "Invalid folder path.")
@@ -103,7 +104,7 @@ def generate_heatmap_from_gui():
         tk.messagebox.showerror("Error", "Please enter a file extension.")
         return
 
-    generate_heatmap(folder_path, file_extension)
+    generate_heatmap(folder_path, file_extension, cmap)
 
 
 # Create the main Tkinter window
@@ -123,9 +124,21 @@ label_extension = tk.Label(root, text="File Extension:")
 label_extension.grid(row=1, column=0, padx=5, pady=5)
 entry_extension = tk.Entry(root, width=10)
 entry_extension.grid(row=1, column=1, padx=5, pady=5)
+default_extension = "mp3"
+entry_extension.insert(tk.END, default_extension)
+
+# Colormap Selection
+label_cmap = tk.Label(root, text="Colormap:")
+label_cmap.grid(row=2, column=0, padx=5, pady=5)
+cmap_var = tk.StringVar(root)
+cmap_var.set('coolwarm')
+cmap_choices = ['coolwarm', 'viridis', 'inferno']  # List of available colormap options
+option_menu_cmap = tk.OptionMenu(root, cmap_var, *cmap_choices)
+option_menu_cmap.grid(row=2, column=1, padx=5, pady=5)
+
 
 # Generate Heatmap Button
 button_generate = tk.Button(root, text="Generate Heatmap", command=generate_heatmap_from_gui)
-button_generate.grid(row=2, column=0, columnspan=3, padx=5, pady=5)
+button_generate.grid(row=3, column=0, columnspan=3, padx=5, pady=5)
 
 root.mainloop()
