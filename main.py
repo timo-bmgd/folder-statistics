@@ -1,8 +1,12 @@
 import os
+import sys
 import time
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import calmap
+import tkinter as tk
+from tkinter import filedialog
 
 
 def load_env(file_path='.env'):
@@ -31,25 +35,26 @@ def get_file_creation_time(file_path):
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getctime(file_path)))
 
 
-def get_mp3_files(folder_path):
+def get_files(folder_path, file_extension):
     """
-    Get a list of all MP3 files in a folder.
+    Get a list of all files with the specified extension in a folder.
     """
-    mp3_files = []
+    files = []
     for file in os.listdir(folder_path):
-        if file.endswith('.mp3'):
-            mp3_files.append(os.path.join(folder_path, file))
-    return mp3_files
+        if file.endswith(file_extension):
+            files.append(os.path.join(folder_path, file))
+    return files
 
 
-def main():
-    load_env()  # Load environment variables from .env file
-    folder_path = os.getenv('MP3_FOLDER_PATH')
-    if not folder_path:
-        raise EnvironmentError('MP3_FOLDER_PATH environment variable not set.')
+def generate_heatmap(folder_path, file_extension):
+    # Get the files with the specified file extension
+    files = get_files(folder_path, file_extension)
+    if not files:
+        print(f'No {file_extension.upper()} files found in the specified folder.')
+        sys.exit(1)
 
-    mp3_files = get_mp3_files(folder_path)
-    creation_times = [get_file_creation_time(file) for file in mp3_files]
+    # Get creation times of files
+    creation_times = [get_file_creation_time(file) for file in files]
 
     # Convert creation times to a pandas Series with counts per day
     creation_dates = [time.split(' ')[0] for time in creation_times]
@@ -65,16 +70,14 @@ def main():
     if len(years) == 1:
         axes = [axes]  # Ensure axes is iterable if only one subplot
 
-    cmap = 'coolwarm'
-
     # Plot each year's data on a separate subplot
     for ax, year in zip(axes, years):
         year_data = creation_series[creation_series.index.year == year]
-        calmap.yearplot(year_data, fillcolor='lightgray', cmap=cmap, linewidth=0.5, year=year, ax=ax)
-        ax.set_title(f'MP3 Files Creation Dates Heatmap for {year}')
+        calmap.yearplot(year_data, fillcolor='lightgray', cmap='Blues', linewidth=0.5, year=year, ax=ax)
+        ax.set_title(f'{file_extension.upper()} Files Creation Dates Heatmap for {year}')
 
     # Add a colorbar to the plot
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=creation_series.max()))
+    sm = plt.cm.ScalarMappable(cmap='Blues', norm=plt.Normalize(vmin=0, vmax=creation_series.max()))
     sm._A = []
     cbar = fig.colorbar(sm, ax=axes, orientation='horizontal', pad=0.05)
     cbar.set_label('Number of Files')
@@ -82,5 +85,47 @@ def main():
     plt.show()
 
 
-if __name__ == "__main__":
-    main()
+def browse_folder():
+    folder_path = filedialog.askdirectory()
+    entry_folder.delete(0, tk.END)
+    entry_folder.insert(0, folder_path)
+
+
+def generate_heatmap_from_gui():
+    folder_path = entry_folder.get()
+    file_extension = entry_extension.get().lower()
+
+    if not os.path.isdir(folder_path):
+        tk.messagebox.showerror("Error", "Invalid folder path.")
+        return
+
+    if not file_extension:
+        tk.messagebox.showerror("Error", "Please enter a file extension.")
+        return
+
+    generate_heatmap(folder_path, file_extension)
+
+
+# Create the main Tkinter window
+root = tk.Tk()
+root.title("File Creation Date Heatmap")
+
+# Folder Path
+label_folder = tk.Label(root, text="Folder Path:")
+label_folder.grid(row=0, column=0, padx=5, pady=5)
+entry_folder = tk.Entry(root, width=50)
+entry_folder.grid(row=0, column=1, padx=5, pady=5)
+button_browse = tk.Button(root, text="Browse", command=browse_folder)
+button_browse.grid(row=0, column=2, padx=5, pady=5)
+
+# File Extension
+label_extension = tk.Label(root, text="File Extension:")
+label_extension.grid(row=1, column=0, padx=5, pady=5)
+entry_extension = tk.Entry(root, width=10)
+entry_extension.grid(row=1, column=1, padx=5, pady=5)
+
+# Generate Heatmap Button
+button_generate = tk.Button(root, text="Generate Heatmap", command=generate_heatmap_from_gui)
+button_generate.grid(row=2, column=0, columnspan=3, padx=5, pady=5)
+
+root.mainloop()
